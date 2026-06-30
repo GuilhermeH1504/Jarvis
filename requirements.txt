@@ -1,0 +1,6 @@
+opencv-python
+openai-whisper
+pyttsx3
+anthropic
+pyaudio
+sounddevice
