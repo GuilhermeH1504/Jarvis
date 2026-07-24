@@ -14,3 +14,6 @@ Thumbs.db
 
 # Variáveis de ambiente
 .env
+
+# Memoria persistida do Jarvis (dados pessoais)
+data/

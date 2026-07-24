@@ -1,6 +1,11 @@
+ddgs
+groq
+numpy
 opencv-python
 openai-whisper
-pyttsx3
-anthropic
+openpyxl
 pyaudio
+python-dotenv
+pyttsx3
+scipy
 sounddevice

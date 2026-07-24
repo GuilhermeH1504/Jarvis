@@ -1,8 +1,34 @@
 # Modulo de visao computacional com OpenCV.
 
 import cv2
+import shutil
+import tempfile
 import threading
 import time
+from pathlib import Path
+
+
+def load_face_cascade():
+    cascade_name = "haarcascade_frontalface_default.xml"
+    source_path = Path(cv2.data.haarcascades) / cascade_name
+
+    if not source_path.exists():
+        raise FileNotFoundError(f"[vision] Haar Cascade nao encontrado: {source_path}")
+
+    path_to_load = source_path
+
+    # No Windows, o OpenCV pode falhar ao abrir arquivos em caminhos com acento.
+    if not str(source_path).isascii():
+        safe_dir = Path(tempfile.gettempdir()) / "jarvis_opencv"
+        safe_dir.mkdir(exist_ok=True)
+        path_to_load = safe_dir / cascade_name
+        shutil.copyfile(source_path, path_to_load)
+
+    classifier = cv2.CascadeClassifier(str(path_to_load))
+    if classifier.empty():
+        raise RuntimeError(f"[vision] Nao consegui carregar o Haar Cascade: {path_to_load}")
+
+    return classifier
 
 class FaceWatcher:
     """
@@ -18,8 +44,7 @@ class FaceWatcher:
         self._thread = None
 
         # Classificador pre-treinado do openCV para detecçao de rosto frontal
-        cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
-        self.face_cascade = cv2.CascadeClassifier(cascade_path)
+        self.face_cascade = load_face_cascade()
 
 
     def start(self):
@@ -59,9 +84,14 @@ class FaceWatcher:
                     cv2.rectangle(frame, (x,y), (x+w, y+h), (0,255,0), 2)
                     cv2.putText(frame, "JARVIS ONLINE", (x,y - 10)
                                 , cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0,255,0), 2)
+
+                cv2.imshow("Jarvis - Visao", frame)
+                if cv2.waitKey(1) & 0xFF == ord("q"):
+                    self._running = False
+
         cap.release()
         if self.show_window:
-            cv2.destroyAllWindowns()
+            cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     watcher = FaceWatcher(show_window=True)
@@ -74,4 +104,3 @@ if __name__ == "__main__":
             print("Rosto detectado:", watcher.face_detected)
     except KeyboardInterrupt:
         watcher.stop()
-            
