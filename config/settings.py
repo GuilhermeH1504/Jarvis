@@ -28,3 +28,4 @@ MAX_HISTORY_TURNS = int(_clean_env("JARVIS_MAX_HISTORY_TURNS", "3") or 3)
 HISTORY_FILE = DATA_DIR / "history.json"
 PROFILE_FILE = DATA_DIR / "profile.json"
 VECTOR_STORE_FILE = DATA_DIR / "vector_store.json"
+REMINDERS_FILE = DATA_DIR / "reminders.json"
