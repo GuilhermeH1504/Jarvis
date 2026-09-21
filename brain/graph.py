@@ -12,6 +12,7 @@ from brain.tools import TOOL_SCHEMAS, build_dispatch
 from memory.history import ConversationHistory
 from memory.profile import UserProfile
 from memory.vector_store import VectorStore
+from actions.reminders import ReminderStore
 
 _LOCAL_ACTIONS = {
     "open_app": lambda args, _confirm: apps.open_app(args["value"]),
@@ -30,7 +31,8 @@ class JarvisBrain:
         self.history = ConversationHistory()
         self.profile = UserProfile()
         self.vector_store = VectorStore()
-        self.tool_dispatch = build_dispatch(self.profile, self.vector_store)
+        self.reminders = ReminderStore()
+        self.tool_dispatch = build_dispatch(self.profile, self.vector_store, self.reminders)
         self._pending_action: Intent | None = None
 
     def think(self, user_input: str) -> str:
