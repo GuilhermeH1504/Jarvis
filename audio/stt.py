@@ -3,8 +3,6 @@
 import sounddevice as sd
 import numpy as np
 import whisper
-import tempfile 
-import scipy.io.wavfile as wavfile
 
 class SpeechToText:
     def __init__(self, model_size: str = 'base', sample_rate: int = 16000):
@@ -33,10 +31,10 @@ class SpeechToText:
     
     def transcribe(self, audio: np.ndarray)-> str:
         """Transcreve um array de audio em texto"""
-        with tempfile.NamedTemporaryFile(suffix='.wav', delete=True) as tmp:
-            wavfile.write(tmp.name, self.sample_rate, audio)
-            result = self.model.transcribe(tmp.name, language='pt')
-            return result['text'].strip()
+        # Passa o array direto pro Whisper (float32, mono, 16kHz): evita arquivo
+        # temporario, que no Windows nao pode ser reaberto enquanto esta aberto.
+        result = self.model.transcribe(audio, language='pt')
+        return result['text'].strip()
 
     def listen(self, duration: int=5):
         """Grava e ja retorna o texto transcrito. Atalho pro uso comum."""
