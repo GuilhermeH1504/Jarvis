@@ -1,12 +1,14 @@
 # Orquestrador principal do Jarvis.
 
 import argparse
+import queue
 import time
 
 WAKE_PHRASES_TO_EXIT = {"sair", "encerrar", "tchau jarvis", "desligar"}
 
 
 def run_text_mode():
+    from actions.reminders import ReminderWatcher
     from brain.graph import JarvisBrain
 
     print("=" * 50)
@@ -16,19 +18,30 @@ def run_text_mode():
 
     brain = JarvisBrain()
 
-    while True:
-        user_text = input("Voce: ").strip()
-        if not user_text:
-            continue
-        if user_text.lower() in WAKE_PHRASES_TO_EXIT:
-            print("Jarvis: Tchau, volte sempre!")
-            break
+    # O print reescreve o "Voce: " no fim porque o input() continua esperando.
+    watcher = ReminderWatcher(
+        brain.reminders,
+        on_due=lambda r: print(f"\n[Lembrete] {r['message']}\nVoce: ", end="", flush=True),
+    )
+    watcher.start()
 
-        resposta = brain.think(user_text)
-        print(f"Jarvis: {resposta}\n")
+    try:
+        while True:
+            user_text = input("Voce: ").strip()
+            if not user_text:
+                continue
+            if user_text.lower() in WAKE_PHRASES_TO_EXIT:
+                print("Jarvis: Tchau, volte sempre!")
+                break
+
+            resposta = brain.think(user_text)
+            print(f"Jarvis: {resposta}\n")
+    finally:
+        watcher.stop()
 
 
 def run_voice_mode():
+    from actions.reminders import ReminderWatcher
     from vision.webcam import FaceWatcher
     from audio.stt import SpeechToText
     from audio.tts import TextSpeech
@@ -51,12 +64,23 @@ def run_voice_mode():
     print("\n[4/4] Carregando inteligencia artificial...")
     brain = JarvisBrain()
 
+    # A thread do watcher so enfileira; quem fala e o loop principal, porque o
+    # pyttsx3 nao deve ser usado de duas threads ao mesmo tempo.
+    due_messages = queue.Queue()
+    reminder_watcher = ReminderWatcher(
+        brain.reminders, on_due=lambda r: due_messages.put(r["message"])
+    )
+    reminder_watcher.start()
+
     print("\nJarvis iniciado em modo voz.")
     print("Olhe para a webcam e fale quando ele disser que esta ouvindo.")
     print("Para encerrar, fale 'sair' ou aperte Ctrl+C.\n")
 
     try:
         while True:
+            while not due_messages.empty():
+                tts.speak(f"Lembrete: {due_messages.get()}")
+
             if watcher.face_detected:
                 tts.speak("Pode falar, estou te ouvindo.")
                 user_text = stt.listen(duration=5)
@@ -77,6 +101,7 @@ def run_voice_mode():
         print("\n[main] Interrompido pelo usuario")
     finally:
         watcher.stop()
+        reminder_watcher.stop()
         print("=" * 50)
         print("[main] Encerrando Jarvis...")
 
