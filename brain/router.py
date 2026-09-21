@@ -17,12 +17,22 @@ _PATTERNS = [
     ("lock", re.compile(r"^(?:bloquear|travar)\s+(?:o\s+)?(?:computador|pc)", re.IGNORECASE)),
     ("shutdown", re.compile(r"^desligar\s+(?:o\s+)?(?:computador|pc)", re.IGNORECASE)),
     ("restart", re.compile(r"^reiniciar\s+(?:o\s+)?(?:computador|pc)", re.IGNORECASE)),
-    ("open_app", re.compile(r"^abr[ei]r?\s+(?:o|a)?\s*(.+)", re.IGNORECASE)),
+    # Artigo so conta como palavra inteira ("abrir opera" nao vira "pera").
+    (
+        "open_app",
+        re.compile(r"^abr(?:ir|e|a|i)\s+(?:(?:o|a|os|as)\s+)?(.+)", re.IGNORECASE),
+    ),
 ]
+
+# O Whisper costuma devolver "Jarvis, por favor, abre o chrome."
+_LEADING_FILLER = re.compile(r"^(?:jarvis\s*[,.!]?\s+)?(?:por favor\s*,?\s+)?", re.IGNORECASE)
+_TRAILING_FILLER = re.compile(
+    r"[\s,]*(?:por favor|pra mim|para mim|por gentileza)?[\s.,!?;:]*$", re.IGNORECASE
+)
 
 
 def route(user_input: str) -> Intent:
-    text = user_input.strip()
+    text = _LEADING_FILLER.sub("", user_input.strip())
 
     for action, pattern in _PATTERNS:
         match = pattern.match(text)
@@ -31,7 +41,7 @@ def route(user_input: str) -> Intent:
 
         args = {}
         if match.groups():
-            args["value"] = match.group(1).strip()
+            args["value"] = _TRAILING_FILLER.sub("", match.group(1)).strip()
 
         return Intent(kind="action", action=action, args=args)
 
